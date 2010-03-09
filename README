@@ -1,0 +1,5 @@
+JobControl fork
+
+Extending Hadoop JobControl to handle more complex tasks.
+
+Sample project (three stage extraction of a representative keyword from a piece of text) to use JobControl.
