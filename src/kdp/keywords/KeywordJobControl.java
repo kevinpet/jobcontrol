@@ -3,6 +3,9 @@ package kdp.keywords;
 import java.io.IOException;
 import java.util.Calendar;
 
+import kdp.jobcontrol.ControlledFSAction;
+import kdp.jobcontrol.ControlledFSDelete;
+import kdp.jobcontrol.ControlledFSRename;
 import kdp.jobcontrol.ControlledJob;
 import kdp.jobcontrol.JobControl;
 import kdp.keywords.WordCount.Collect;
@@ -37,6 +40,7 @@ public class KeywordJobControl {
     String batch = String.format("batch_%02d%02d", date
         .get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE));
     String input = myArgs[0];
+    String output = myArgs[1];
     String counts = batch + "/counts";
     String normalized = batch + "/norm";
     String weighted = batch + "/weighted";
@@ -96,8 +100,28 @@ public class KeywordJobControl {
     System.out.println("Extracting top keyword to " + weighted);
     control.addJob(extractControl);
 
+    // move old output to a temp location
+    ControlledFSAction moveOldAside = new ControlledFSRename(conf, output, output + "_old");
+    moveOldAside.addDependingJob(extractControl);
+    control.addJob(moveOldAside);
+
+    // move new stuff to final location
+    ControlledFSAction moveOutput = new ControlledFSRename(conf, weighted, output);
+    moveOutput.addDependingJob(moveOldAside);
+    control.addJob(moveOutput);
+
+    // delete batch
+    ControlledFSAction deleteTemp = new ControlledFSDelete(conf, batch, true);
+    deleteTemp.addDependingJob(moveOutput);
+    control.addJob(deleteTemp);
+
+    // delete old output
+    ControlledFSAction deleteOld = new ControlledFSDelete(conf, output + "_old", true);
+    deleteOld.addDependingJob(moveOutput);
+    control.addJob(deleteOld);
+
     // added thread handling to parent class for this simple use
-    control.waitForCompletion();
+    control.waitForCompletion(50);
   }
 
 }

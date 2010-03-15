@@ -25,7 +25,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import kdp.jobcontrol.ControlledJob.State;
+import kdp.jobcontrol.Controlled.State;
 
 /** 
  *  This class encapsulates a set of MapReduce jobs and its dependency.
@@ -51,35 +51,37 @@ public class JobControl implements Runnable {
 	
   private ThreadState runnerState;			// the thread state
 	
-  private Map<String, ControlledJob> waitingJobs;
-  private Map<String, ControlledJob> readyJobs;
-  private Map<String, ControlledJob> runningJobs;
-  private Map<String, ControlledJob> successfulJobs;
-  private Map<String, ControlledJob> failedJobs;
+  private Map<String, Controlled> waitingJobs;
+  private Map<String, Controlled> readyJobs;
+  private Map<String, Controlled> runningJobs;
+  private Map<String, Controlled> successfulJobs;
+  private Map<String, Controlled> failedJobs;
 	
   private long nextJobID;
   private String groupName;
+
+  private long pollIntervalMillis = 5000;
 	
   /** 
    * Construct a job control for a group of jobs.
    * @param groupName a name identifying this group
    */
   public JobControl(String groupName) {
-    this.waitingJobs = new Hashtable<String, ControlledJob>();
-    this.readyJobs = new Hashtable<String, ControlledJob>();
-    this.runningJobs = new Hashtable<String, ControlledJob>();
-    this.successfulJobs = new Hashtable<String, ControlledJob>();
-    this.failedJobs = new Hashtable<String, ControlledJob>();
+    this.waitingJobs = new Hashtable<String, Controlled>();
+    this.readyJobs = new Hashtable<String, Controlled>();
+    this.runningJobs = new Hashtable<String, Controlled>();
+    this.successfulJobs = new Hashtable<String, Controlled>();
+    this.failedJobs = new Hashtable<String, Controlled>();
     this.nextJobID = -1;
     this.groupName = groupName;
     this.runnerState = ThreadState.READY;
   }
 	
-  private static List<ControlledJob> toList(
-                   Map<String, ControlledJob> jobs) {
-    ArrayList<ControlledJob> retv = new ArrayList<ControlledJob>();
+  private static List<Controlled> toList(
+                   Map<String, Controlled> jobs) {
+    ArrayList<Controlled> retv = new ArrayList<Controlled>();
     synchronized (jobs) {
-      for (ControlledJob job : jobs.values()) {
+      for (Controlled job : jobs.values()) {
         retv.add(job);
       }
     }
@@ -89,32 +91,32 @@ public class JobControl implements Runnable {
   /**
    * @return the jobs in the waiting state
    */
-  public List<ControlledJob> getWaitingJobList() {
+  public List<Controlled> getWaitingJobList() {
     return toList(this.waitingJobs);
   }
 	
   /**
    * @return the jobs in the running state
    */
-  public List<ControlledJob> getRunningJobList() {
+  public List<Controlled> getRunningJobList() {
     return toList(this.runningJobs);
   }
 	
   /**
    * @return the jobs in the ready state
    */
-  public List<ControlledJob> getReadyJobsList() {
+  public List<Controlled> getReadyJobsList() {
     return toList(this.readyJobs);
   }
 	
   /**
    * @return the jobs in the success state
    */
-  public List<ControlledJob> getSuccessfulJobList() {
+  public List<Controlled> getSuccessfulJobList() {
     return toList(this.successfulJobs);
   }
 	
-  public List<ControlledJob> getFailedJobList() {
+  public List<Controlled> getFailedJobList() {
     return toList(this.failedJobs);
   }
 	
@@ -123,20 +125,20 @@ public class JobControl implements Runnable {
     return this.groupName + this.nextJobID;
   }
 	
-  private static void addToQueue(ControlledJob aJob, 
-                                 Map<String, ControlledJob> queue) {
+  private static void addToQueue(Controlled aJob, 
+                                 Map<String, Controlled> queue) {
     synchronized(queue) {
       queue.put(aJob.getJobID(), aJob);
     }		
   }
 	
-  private void addToQueue(ControlledJob aJob) {
-    Map<String, ControlledJob> queue = getQueue(aJob.getJobState());
+  private void addToQueue(Controlled aJob) {
+    Map<String, Controlled> queue = getQueue(aJob.getJobState());
     addToQueue(aJob, queue);	
   }
 	
-  private Map<String, ControlledJob> getQueue(State state) {
-    Map<String, ControlledJob> retv = null;
+  private Map<String, Controlled> getQueue(State state) {
+    Map<String, Controlled> retv = null;
     if (state == State.WAITING) {
       retv = this.waitingJobs;
     } else if (state == State.READY) {
@@ -155,7 +157,7 @@ public class JobControl implements Runnable {
    * Add a new job.
    * @param aJob the new job
    */
-  synchronized public String addJob(ControlledJob aJob) {
+  synchronized public String addJob(Controlled aJob) {
     String id = this.getNextJobID();
     aJob.setJobID(id);
     aJob.setJobState(State.WAITING);
@@ -168,8 +170,8 @@ public class JobControl implements Runnable {
    * 
    * @param jobs
    */
-  public void addJobCollection(Collection<ControlledJob> jobs) {
-    for (ControlledJob job : jobs) {
+  public void addJobCollection(Collection<Controlled> jobs) {
+    for (Controlled job : jobs) {
       addJob(job);
     }
   }
@@ -210,11 +212,11 @@ public class JobControl implements Runnable {
   synchronized private void checkRunningJobs() 
       throws IOException, InterruptedException {
 		
-    Map<String, ControlledJob> oldJobs = null;
+    Map<String, Controlled> oldJobs = null;
     oldJobs = this.runningJobs;
-    this.runningJobs = new Hashtable<String, ControlledJob>();
+    this.runningJobs = new Hashtable<String, Controlled>();
 		
-    for (ControlledJob nextJob : oldJobs.values()) {
+    for (Controlled nextJob : oldJobs.values()) {
       nextJob.checkState();
       this.addToQueue(nextJob);
     }
@@ -222,22 +224,22 @@ public class JobControl implements Runnable {
 	
   synchronized private void checkWaitingJobs() 
       throws IOException, InterruptedException {
-    Map<String, ControlledJob> oldJobs = null;
+    Map<String, Controlled> oldJobs = null;
     oldJobs = this.waitingJobs;
-    this.waitingJobs = new Hashtable<String, ControlledJob>();
+    this.waitingJobs = new Hashtable<String, Controlled>();
 		
-    for (ControlledJob nextJob : oldJobs.values()) {
+    for (Controlled nextJob : oldJobs.values()) {
       nextJob.checkState();
       this.addToQueue(nextJob);
     }
   }
 	
   synchronized private void startReadyJobs() {
-    Map<String, ControlledJob> oldJobs = null;
+    Map<String, Controlled> oldJobs = null;
     oldJobs = this.readyJobs;
-    this.readyJobs = new Hashtable<String, ControlledJob>();
+    this.readyJobs = new Hashtable<String, Controlled>();
 		
-    for (ControlledJob nextJob : oldJobs.values()) {
+    for (Controlled nextJob : oldJobs.values()) {
       //Submitting Job to Hadoop
       nextJob.submit();
       this.addToQueue(nextJob);
@@ -262,7 +264,7 @@ public class JobControl implements Runnable {
     while (true) {
       while (this.runnerState == ThreadState.SUSPENDED) {
         try {
-          Thread.sleep(5000);
+          Thread.sleep(pollIntervalMillis);
         }
         catch (Exception e) {
 					
@@ -280,7 +282,7 @@ public class JobControl implements Runnable {
         break;
       }
       try {
-        Thread.sleep(5000);
+        Thread.sleep(pollIntervalMillis);
       }
       catch (Exception e) {
 				
@@ -296,11 +298,14 @@ public class JobControl implements Runnable {
   public void waitForCompletion() throws InterruptedException {
     waitForCompletion(1000);
   }
-  public void waitForCompletion(long intervalMillis) throws InterruptedException {
+
+  public void waitForCompletion(long intervalMillis)
+      throws InterruptedException {
+    pollIntervalMillis = intervalMillis;
     new Thread(this).start();
     // spin while the JobControl is working
     while (!this.allFinished()) {
-          Thread.sleep(intervalMillis);
+      Thread.sleep(intervalMillis);
     }
     this.stop();
   }
