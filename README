@@ -2,4 +2,19 @@ JobControl fork
 
 Extending Hadoop JobControl to handle more complex tasks.
 
-Sample project (three stage extraction of a representative keyword from a piece of text) to use JobControl.
+Hadoop Enhanced JobControl
+==========================
+
+Extend Hadoop JobControl to handle more complex tasks.
+
+- Allow file system operations (move, delete) as dependencies.
+- Restart failed workflows.
+- Allow composition of workflows (i.e a workflow as a dependency).
+- Expose a well-defined extension point for adding Pig, Cascading, etc.
+- Simplify job creation using a Scala-based DSL.
+
+Examples
+--------
+
+Sample project (three stage extraction of a representative keyword
+from a piece of text) to use JobControl.
