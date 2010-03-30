@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jobcontrol" default="jar">
+  <property name="hadoop.home" value="/opt/hadoop"/>
+  <path id="hadoop.classpath">
+    <fileset dir="${hadoop.home}">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset dir="${hadoop.home}/lib">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+  <target name="init">
+    <mkdir dir="target"/>
+    <mkdir dir="target/classes"/>
+  </target>
+  <target name="clean">
+    <delete includeemptydirs="true">
+      <fileset dir="target"/>
+    </delete>
+  </target>
+  <target name="compile" depends="init">
+    <javac srcdir="src/" destdir="target/classes" debug="true">
+      <classpath refid="hadoop.classpath" />
+    </javac>
+  </target>
+  <target name="jar" depends="compile">
+    <jar basedir="target/classes" destfile="target/keywords.jar" />
+  </target>
+</project>
