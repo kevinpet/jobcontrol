@@ -101,7 +101,7 @@ public class KeywordJobControl {
     control.addJob(extractControl);
 
     // move old output to a temp location
-    ControlledFSAction moveOldAside = new ControlledFSRename(conf, output, output + "_old");
+    ControlledFSAction moveOldAside = new OptionalRename(conf, output, output + "_old");
     moveOldAside.addDependingJob(extractControl);
     control.addJob(moveOldAside);
 
@@ -116,7 +116,7 @@ public class KeywordJobControl {
     control.addJob(deleteTemp);
 
     // delete old output
-    ControlledFSAction deleteOld = new ControlledFSDelete(conf, output + "_old", true);
+    ControlledFSAction deleteOld = new OptionalDelete(conf, output + "_old", true);
     deleteOld.addDependingJob(moveOutput);
     control.addJob(deleteOld);
 
