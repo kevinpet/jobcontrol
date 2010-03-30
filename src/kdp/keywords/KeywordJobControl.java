@@ -3,11 +3,7 @@ package kdp.keywords;
 import java.io.IOException;
 import java.util.Calendar;
 
-import kdp.jobcontrol.ControlledFSAction;
-import kdp.jobcontrol.ControlledFSDelete;
-import kdp.jobcontrol.ControlledFSRename;
-import kdp.jobcontrol.ControlledJob;
-import kdp.jobcontrol.JobControl;
+import kdp.jobcontrol.*;
 import kdp.keywords.WordCount.Collect;
 import kdp.keywords.WordCount.Count;
 
