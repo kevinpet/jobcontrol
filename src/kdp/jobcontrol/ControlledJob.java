@@ -82,6 +82,10 @@ public class ControlledJob extends Controlled {
     this.dependingJobs = dependingJobs;
   }
 
+  protected ControlledJob() {
+    super();
+  }
+
   /**
    * Construct a job.
    * 
